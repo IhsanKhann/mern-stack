@@ -13,7 +13,7 @@ class AppwriteService {
     try {
       const user = await this.account.create(ID.unique(), email, password, name);
       if(user){
-        this.Login(email,password);
+        await this.Login({email,password});
       }
     } catch (error) {
       console.error('Register error:', error.message);
@@ -23,6 +23,7 @@ class AppwriteService {
 
   async Login({email, password}) {
     try {
+      console.log("Login with:", email, password); // Make sure they're not undefined
       return await this.account.createEmailPasswordSession(email, password);
     } catch (error) {
       console.error('Login error:', error.message);
@@ -48,6 +49,7 @@ class AppwriteService {
       throw error;
     }
   }
+
 }
 
 const appwriteService = new AppwriteService();

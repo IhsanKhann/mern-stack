@@ -13,10 +13,14 @@ const sliceAuth = createSlice({
         setUser: (state, action) => {
             state.user = action.payload;
             state.isAuthenticated = true;
+            console.log(state.user, "setUser called in slice");
+
         },
         removeUser: (state) => {
             state.user = {};
             state.isAuthenticated = false;
+            console.log(state.user,"remove user called in slice");
+
         },
     },
 })

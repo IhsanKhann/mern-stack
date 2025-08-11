@@ -1,17 +1,58 @@
-import { useForm } from "react-hook-form";
-import { appwriteService } from "../import.js";
+import { appwriteService,setUser } from "../import.js";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
+import { useDispatch,useSelector } from "react-redux";
+
+// building forms using yup + RHF.
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+
+// toasts and notifications:
+import { toast } from 'react-toastify';
+
+// schema for the form and validation:
+const schema = yup.object().shape({
+  email: yup
+  .string()
+  .email("Invalid email")
+  .required("Email is required"),
+
+  password: yup
+  .string()
+  .min(4, "Password must be at least 4 characters")
+  .max(30, "Password must be at most 30 characters")
+  .required("Password is required"),
+});
 
 
 function LoginForm(){
-  const { register, handleSubmit,formState: { errors },isSubmitting} = useForm();
+  const { register, handleSubmit,formState: { errors },isSubmitting} = useForm(
+    {
+      resolver: yupResolver(schema),
+    }
+  );
 
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
+  // checks session and logins user
   const Submit = async (data) => {
-    await appwriteService.Login(data);
-    navigate("/");
+   try{
+      await appwriteService.Login(data);
+
+      const user = await appwriteService.GetUser();
+      if(user){
+        dispatch(setUser(user));    
+      }
+
+      toast.success("Login successful!"); // Notify user of successful login
+      // store -> login set to true.
+      navigate("/dashboard");
+   }catch(error){
+    console.log("Error in LoginForm:", error);
+    toast.error("Login failed: " + error.message); // Notify user of login failure
+   }
   };
 
   return (
@@ -34,20 +75,20 @@ function LoginForm(){
           <input
             type="email"
             placeholder="Email"
-            {...register("email", { required: true,
-                minLength:{value:4,message:"Email must be at least 4 characters"},
-                maxLength:{value:30,message:"Email must be at most 30 characters"},
-             })}
+            {...register("email")}
+
+            // {...register("email", { required: true,
+            //     minLength:{value:4,message:"Email must be at least 4 characters"},
+            //     maxLength:{value:30,message:"Email must be at most 30 characters"},
+            //  })} -> no need for this if using yup for validation.
+
             className="w-full mb-4 p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
           <input
             type="password"
             placeholder="Password"
-            {...register("password", { required: true,
-                minLength:{value:4,message:"Password must be at least 4 characters"},
-                maxLength:{value:30,message:"Password must be at most 30 characters"},
-             })}
+            {...register("password")}
             className="w-full mb-6 p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           {errors.password && <p className="text-red-500 text-sm">{errors.password.message}</p>}
