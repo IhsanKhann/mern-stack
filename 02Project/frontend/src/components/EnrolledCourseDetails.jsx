@@ -1,32 +1,39 @@
 import { useNavigate } from "react-router-dom";
 
-function EnrolledCourseDetails({ course }) {
+function EnrolledCourseDetails({ course,userId }) {
     const { _id, title, description, price, category, image, status } = course;
     const navigate = useNavigate();
 
   const handleCompleteClick = async () => {
     try {
       // 1. Create completed course
-      const res = await fetch(`http://localhost:5000/api/addCompletedCourse`, {
+      const res = await fetch(`/api/addCompletedCourse`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ _id,title, description, price, category, image })
+        body: JSON.stringify({ courseId: _id,userId })
       });
 
       const data = await res.json();
       if (!data.success) throw new Error(data.message);
 
-      // 2. Delete enrollment
-      await fetch(`http://localhost:5000/api/deleteEnrollement/${_id}`, {
+      // 2-change status of the course to completed
+      await fetch(`/api/changeStatus/${_id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "completed",type:"enrollement" })
+
+      });
+
+      // 3. Delete enrollment
+      await fetch(`/api/deleteEnrollement/${_id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ _id })
       });
 
-      alert("Course marked as completed!");
-      //navigate to dashboard
-       navigate("/dashboard");
-       window.location.reload();
+      // 4. Refresh dashboard
+      navigate("/dashboard");
+      window.location.reload();
 
     } catch (error) {
       console.error("Error completing course:", error);
@@ -60,7 +67,7 @@ function EnrolledCourseDetails({ course }) {
                 : "bg-gray-300 text-gray-600"
             }`}
           >
-            {status === "enrolled" ? "Enrolled ✅" : "Not Enrolled"}
+            {status === "completed" ? "Completed ✅" : "Not Completed"}
           </button>
 
           <button

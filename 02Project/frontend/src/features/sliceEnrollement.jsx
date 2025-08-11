@@ -7,7 +7,7 @@ export const fetchEnrolledCourses = createAsyncThunk(
   "courses/fetchEnrolledCourses",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get("http://localhost:5000/api/allEnrollements");
+      const response = await axios.get("/api/allEnrollements");
       return response.data.enrolledCourses;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -20,7 +20,7 @@ export const fetchAllCourses = createAsyncThunk(
   "courses/fetchAllCourses",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await fetch("http://localhost:5000/api/allCourses");
+      const res = await fetch("/api/allCourses");
       const data = await res.json();
       return data.allCourses;
     } catch (error) {
@@ -34,7 +34,7 @@ export const fetchCompletedCourse = createAsyncThunk(
   "courses/fetchCompletedCourse",
   async (_, { rejectWithValue }) => {
     try {
-      const res = await fetch("http://localhost:5000/api/getCompletedCourses");
+      const res = await fetch("/api/getCompletedCourses");
       const data = await res.json();
       return data.completedCourses;
     } catch (error) {

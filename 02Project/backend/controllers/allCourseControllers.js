@@ -1,7 +1,8 @@
 // controllers/allCourseControllers.js
+import completedCourseModel from "../models/completedCourseModel.js";
 import courseModel from "../models/courseModel.js"; // <- make sure `.js` is added (if using ESM)
 import enrollementModel from "../models/enrollementModel.js";
-import completedCourseModel from "../models/completedCourseModel.js";
+// import completedCourseModel from "../models/completedCourseModel.js";
 
 // controllers/allCourseControllers.js
 const getAllCourses = async (req, res) => {
@@ -22,7 +23,6 @@ const getAllCourses = async (req, res) => {
     });
   }
 };
-
 
 const getCourseById = async (req, res) => {
   try {
@@ -55,18 +55,16 @@ const createCourse = async (req, res) => {
   try {
     const { title, description, price, image, category, duration } = req.body;
     
-    // here we would check if the title exists already.
-    // const existingCourse = await courseModel.findOne({title}); // we take them from db(collection) using a title.
-
-    // if (existingCourse){
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: "Course with this title already exists.",
-    //     existingCourse
-    //   })
-    // }
-
     // else part:
+    const exists = await courseModel.findOne({title});
+    if(exists){
+      return res.status(400).json({
+        success: false,
+        message: "Course with this title already exists.",
+        existingCourse
+      })
+    }
+  
     const newCourse = new courseModel({
       title,
       description,
@@ -74,7 +72,6 @@ const createCourse = async (req, res) => {
       image,
       category,
       duration,
-      status:"Available",
     });
     await newCourse.save();
 
@@ -84,23 +81,22 @@ const createCourse = async (req, res) => {
       newCourse
     });
   } catch (error) {
-     if (error.code === 11000) {
-      return res.status(400).json({ message: "Course already exists!" });
-    }
-    else{
       res.status(400).json({
         success: false,
         message: "Error while creating course.",
         error: error.message
       })
     }
-  }
-};
+  };
 
 // get Enrollements:
 const getAllEnrolledCourses = async (req,res) => {
     try{
-        const enrolledCourses = await enrollementModel.find();
+        // const {userid} = req.params.id;
+        const {userid, courseid} = req.body;
+ 
+        const enrolledCourses = await enrollementModel.find({user: userid}).populate(courseid);
+
         if(enrolledCourses.length > 0){
             res.status(200).json({
                 success: true,
@@ -127,8 +123,10 @@ const getAllEnrolledCourses = async (req,res) => {
 // get a single Enrollement:
 const getSingleEnrollement = async (req,res) => {
     try{
-        const {id} = req.params;
-        const enrollement = await enrollementModel.findById(id);
+        const {id} = req.params
+        const {courseid} = req.body ;
+
+        const enrollement = await enrollementModel.findById(id).populate(courseid);
         if(enrollement){
             res.status(200).json({
                 success: true,
@@ -155,34 +153,25 @@ const getSingleEnrollement = async (req,res) => {
 // make a enrollement
 const createEnrollement = async (req, res) => {
   try {
-    const { courseId, title, description, price, category, image } = req.body;
+    const { courseId, userId } = req.body;
 
-    // TEMP: Only prevent if already in DB with status enrolled
-    // const existingCourse = await enrollementModel.findOne({
-    //   courseId,
-    //   status: "enrolled"
-    // });
-
-    // if (existingCourse) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: "You have already enrolled in this course.",
-    //     existingCourse
-    //   });
-    // }
+    const exists = await enrollementModel.findOne({userId}).populate("courseId");
+    if(exists){
+      return res.status(400).json({
+        success: false,
+        message: "Enrollement already exists.",
+        existingEnrollement: exists
+      })
+    }
 
     const newEnrollement = new enrollementModel({
       courseId,
-      title,
-      description,
-      price,
-      category,
-      image,
-      status: "enrolled"
+      userId,
+      completedAt: Date.now()
     });
 
     // Update the status in allCourses
-    await courseModel.findByIdAndUpdate(courseId, { status: "enrolled" });
+    await courseModel.findByIdAndUpdate(courseId, { status: "enrolled already" });
 
     await newEnrollement.save();
     res.status(201).json({
@@ -204,41 +193,68 @@ const createEnrollement = async (req, res) => {
   }
 };
 
-// change the status of the courses upon a enrollement
-// update and delete mostly using an id.
-const changeStatusofCourse = async (req,res) => {
-  try{
-    const {id} = req.params;
-    const {status} = req.body;
+// one function to handle both course and enrollement status changes.
+const changeStatus = async (req, res) => {
+  try {
+    const { id } = req.params; // ID of course or enrollement
+    const { status, type } = req.body; // type: "course" or "enrollement"
 
-    const updateCourse = await courseModel.findById(id);
-    if(updateCourse){
-      
-      updateCourse.status = status;
-      await updateCourse.save();
-        res.status(200).json({
-        success: true,
-        message: "Course status updated successfully.",
-        updateCourse
+    // Allowed enum values from your schema
+    const validStatuses = ["enrolled already", "available", "enrolled", "completed"];
 
-      })
+    // Check if status is valid
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status provided."
+      });
     }
-    else{
-        res.status(404).json({
-        success: true,
-        message: "Course status couldnt be updated.",
-        updateCourse
-      })
+
+    let updatedDoc;
+
+    // Decide which model to update based on type
+    if (type === "course") {
+      updatedDoc = await courseModel.findByIdAndUpdate(
+        id,
+        { status },
+        { new: true }
+      );
+    } 
+    else if (type === "enrollement") {
+      updatedDoc = await enrollementModel.findByIdAndUpdate(
+        id,
+        { status },
+        { new: true }
+      );
+    } 
+    else {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid type. Must be 'course' or 'enrollement'."
+      });
     }
-  }
-  catch(error){
+
+    if (!updatedDoc) {
+      return res.status(404).json({
+        success: false,
+        message: `${type} not found. Status not updated.`
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `${type} status updated successfully.`,
+      updated: updatedDoc
+    });
+
+  } catch (error) {
     res.status(400).json({
       success: false,
-      message: "Error while updating course status.",
+      message: "Error while updating status.",
       error: error.message
-    })
+    });
   }
-}
+};
 
 // DELETE enrollment
 const deleteEnrollement = async (req, res) => {
@@ -271,16 +287,21 @@ const deleteEnrollement = async (req, res) => {
 // CREATE completed course
 const createCompletedCourse = async (req, res) => {
   try {
-    const { id,title, description, price, category, image } = req.body;
+    const { userId, courseId } = req.body;
+
+    const exists = await completedCourseModel.findOne({ userId, courseId });
+    if (exists) {
+      return res.status(400).json({
+        success: false,
+        message: "Course already completed.",
+        existingCompletedCourse: exists
+      });
+    }
 
     const newCompletedCourse = new completedCourseModel({
-      courseId: id,
-      title,
-      description,
-      price,
-      category,
-      image,
-      status: "completed"
+      userId,
+      courseId,
+      completedAt: Date.now(),
     });
 
     await newCompletedCourse.save();
@@ -291,23 +312,21 @@ const createCompletedCourse = async (req, res) => {
       completedCourse: newCompletedCourse
     });
   } catch (error) {
-     if (error.code === 11000) {
-      return res.status(400).json({ message: "Course already exists!" });
-    }
-    else{
-      res.status(400).json({
-        success: false,
-        message: "Error while creating completed course.",
-        error: error.message
-      })
-    }
+    res.status(400).json({
+      success: false,
+      message: "Error while creating completed course.",
+      error: error.message
+    });
   }
 };
 
 // get completed courses
 const getCompletedCourses = async (req,res) => {
   try{
-    const completedCourses = await completedCourseModel.find();
+   const { userId } = req.params; // now from URL, not body
+
+    const completedCourses = await completedCourseModel.find({userId});
+
     if(completedCourses.length > 0){
       res.status(200).json({
         success: true,
@@ -338,9 +357,8 @@ export {
   createEnrollement,
   getAllEnrolledCourses,
   getSingleEnrollement,
-  changeStatusofCourse,
+  changeStatus,
   deleteEnrollement,
   createCompletedCourse,
   getCompletedCourses,
 };
-

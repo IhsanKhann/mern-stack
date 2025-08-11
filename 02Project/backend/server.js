@@ -3,9 +3,17 @@ import cors from "cors";
 import mongoose from "mongoose";
 import router from "./router.js";
 import config from "./config.js";
+import CourseRouter from "./routes/CourseRoutes.js";
+import UserRouter from "./routes/UserRoutes.js";
 
 const app = express();
-app.use(cors());
+
+// allow the client url to access the backend.
+app.use(cors({
+  origin: config.clientURL,
+  credentials: true,
+}));
+
 app.use(express.json());
 
 // Connect to MongoDB
@@ -18,7 +26,8 @@ app.get("/", (req, res) => {
   res.send("Learnify backend is working!");
 });
 
-app.use("/api", router); // All routes will be under /api
+app.use("/api", CourseRouter); // All routes for courses
+app.use("/user", UserRouter); // All routes for users
 
 // Start server
 const PORT = config.PORT || 5000;

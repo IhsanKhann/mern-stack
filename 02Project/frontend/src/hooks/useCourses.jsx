@@ -7,7 +7,8 @@ function useCourses() {
   useEffect(() => {
     const getCourses = async () => {
         try{
-            const res = await fetch("http://localhost:5000/api/allCourses");
+            const res = await fetch("/api/allCourses");
+
             const data = await res.json();
             setLoading(false);
 

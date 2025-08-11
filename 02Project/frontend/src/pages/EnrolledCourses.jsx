@@ -1,11 +1,15 @@
 import EnrolledCourseDetails from "../components/EnrolledCourseDetails";
 import { useParams } from "react-router-dom";
 import { useState,useEffect } from "react";
+import { useSelector } from "react-redux";
 
 // here we fetch the single enrolled Course.
 function EnrolledCourses(){
-    const {id} = useParams();
+    const {id} = useParams(); // this to get the singleEnrolledCourse
+
     const [course,setCourse] = useState({});
+    const {user} = useSelector((state) => state.user.User);
+    const [userId,setUserId] = useState(user?._id) ;
 
     useEffect(()=>{
         const fetchSingleEnrolledCourse = async()=>{
@@ -13,7 +17,7 @@ function EnrolledCourses(){
                 if(!id) return ;
 
                 if(id){
-                    const response = await fetch(`http://localhost:5000/api/enrollement/${id}`);
+                    const response = await fetch(`/api/enrollement/${id}`);
 
                     const data = await response.json();
                     setCourse(data.enrollement);
@@ -29,7 +33,7 @@ function EnrolledCourses(){
 
     return(
         <>
-            <EnrolledCourseDetails course={course}/>
+            <EnrolledCourseDetails course={course} userId={userId}/>
         </>
     )
 } 

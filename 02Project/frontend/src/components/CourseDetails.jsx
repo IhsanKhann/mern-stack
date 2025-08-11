@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 
-function CourseDetails({ course }) {
+function CourseDetails({ course, userId }) {
+
     const { _id, title, description, price, category, image, status } = course || {};
     const [courseStatus, setCourseStatus] = useState(status || "");
 
@@ -10,7 +11,7 @@ function CourseDetails({ course }) {
 
         const checkStatus = async () => {
             try {
-                const res = await fetch(`http://localhost:5000/api/course/${_id}`);
+                const res = await fetch(`/api/course/${_id}`);
                 const data = await res.json();
 
                 if (data.success && data.course) {
@@ -27,17 +28,13 @@ function CourseDetails({ course }) {
     const handleEnroll = async () => {
         try {
             // Add enrollment
-            const res = await fetch("http://localhost:5000/api/addEnrollement", {
+            const res = await fetch("/api/addEnrollement", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     courseId: _id,
-                    title,
-                    description,
-                    price,
-                    category,
-                    image,
-                    status: "enrolled"
+                    userId, // add user id soon.
+                    completedAt: Date.now()
                 })
             });
 
@@ -45,14 +42,16 @@ function CourseDetails({ course }) {
 
             if (data.success) {
                 // Update course status in backend
-                await fetch(`http://localhost:5000/api/changeStatus/${_id}`, {
+                await fetch(`/api/changeStatus/${_id}`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ status: "enrolled" })
+                    body: JSON.stringify({ status: "enrolled already",
+                        type:"course"
+                     })
                 });
 
                 // Instant UI update
-                setCourseStatus("enrolled");
+                setCourseStatus("enrolled already");
             }
         } catch (err) {
             console.error("Error enrolling:", err);
@@ -89,11 +88,11 @@ function CourseDetails({ course }) {
                     ${price}
                 </span>
                 <button
-                    disabled={courseStatus === "enrolled"}
+                    disabled={courseStatus === "enrolled already"}
                     onClick={handleEnroll}
                     className="bg-blue-500 font-bold text-[16px] text-white h-12 w-32 hover:bg-blue-700 disabled:opacity-50 rounded-lg transition-all"
                 >
-                    {courseStatus === "enrolled" ? "Enrolled" : "Enroll"}
+                    {courseStatus === "enrolled already" ? "Enrolled already" : "Enroll"}
                 </button>
             </div>
         </div>
