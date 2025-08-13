@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 
 function CourseDetails({ course, userId }) {
+    console.log("inside the course details: ", course,userId);
 
     const { _id, title, description, price, category, image, status } = course || {};
     const [courseStatus, setCourseStatus] = useState(status || "");
@@ -33,22 +34,25 @@ function CourseDetails({ course, userId }) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     courseId: _id,
-                    userId, // add user id soon.
-                    completedAt: Date.now()
+                    userId,
                 })
             });
-
             const data = await res.json();
+            console.log("Enroll request sent:", _id, userId);
+            console.log("Enroll response:", data);
 
             if (data.success) {
                 // Update course status in backend
-                await fetch(`/api/changeStatus/${_id}`, {
+                const response = await fetch(`/api/changeStatus/${_id}`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ status: "enrolled already",
+                    body: JSON.stringify({ 
+                        status: "enrolled already",
                         type:"course"
                      })
                 });
+                const responseData = await response.json();
+                console.log("Status update response:", responseData);
 
                 // Instant UI update
                 setCourseStatus("enrolled already");

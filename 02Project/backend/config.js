@@ -6,7 +6,8 @@ const config = {
     mongoURL: process.env.MONGO_URI,
     PORT: process.env.PORT,
     JWT_SECRET: process.env.JWT_SECRET,
-    JWT_EXPIRE: process.env.JWT_EXPIRE,
+    JWT_EXPIRE: process.env.JWT_EXPIRES_IN,
+    clientURL: String(process.env.CLIENT_URL),
 }
 
 export default config;

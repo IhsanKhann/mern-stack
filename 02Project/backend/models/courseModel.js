@@ -33,8 +33,6 @@ const courseSchema = new mongoose.Schema({
     required: true,
     lowercase: true
   },
-
-
   status:{
     type: String,
     enum: ["available", "enrolled already"],

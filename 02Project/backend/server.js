@@ -1,37 +1,26 @@
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-import router from "./router.js";
 import config from "./config.js";
-import CourseRouter from "./routes/CourseRoutes.js";
-import UserRouter from "./routes/UserRoutes.js";
+import router from "./routes/routes.js";
 
 const app = express();
 
-// allow the client url to access the backend.
 app.use(cors({
   origin: config.clientURL,
-  credentials: true,
+  credentials: true
 }));
 
 app.use(express.json());
 
-// Connect to MongoDB
-mongoose.connect(config.mongoURL)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+// mongodb connect...
+mongoose.connect(config.mongoURL).then(()=>console.log("MongoDB connected")).catch(err=>console.error(err));
 
-// Use routes
 app.get("/", (req, res) => {
-  res.send("Learnify backend is working!");
+    res.send("API is running...");
 });
 
-app.use("/api", CourseRouter); // All routes for courses
-app.use("/user", UserRouter); // All routes for users
+app.use("/api", router);
 
-// Start server
 const PORT = config.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`Access backend Server here: http://localhost:${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));

@@ -1,20 +1,19 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-
 import {
   fetchEnrolledCourses,
   fetchAllCourses,
   fetchCompletedCourse,
 } from "../features/sliceEnrollement";
-
-import Header from "../components/Header";
-import Footer from "../components/Footer";
+import { logout } from "../features/sliceUser";
 
 function Dashboard() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [userid, setUserid] = useState("");
 
+  const user = useSelector((state) => state.auth.user);
   const {
     enrolledCourses,
     allCourses,
@@ -23,65 +22,137 @@ function Dashboard() {
     error,
   } = useSelector((state) => state.enrolledCourses);
 
-  useEffect(() => {
+  const enrolledRef = useRef(null);
+  const allRef = useRef(null);
+  const completedRef = useRef(null);
+
+  // ✅ Get userId safely from Redux or localStorage
+useEffect(() => {
+  const id = user?._id || JSON.parse(localStorage.getItem("user"))?._id;
+  if (id) {
+    setUserid(id);
+    dispatch(fetchEnrolledCourses(id));
     dispatch(fetchAllCourses());
-    dispatch(fetchEnrolledCourses());
-    dispatch(fetchCompletedCourse());
-  }, [dispatch]);
+    dispatch(fetchCompletedCourse(id));
+  }
+}, [user, dispatch]);
 
-  const scrollRefAll = useRef(null);
-  const scrollRefEnrolled = useRef(null);
-  const scrollRefCompleted = useRef(null);
 
-  const scrollLeft = (ref) => {
-    ref.current.scrollBy({ left: -300, behavior: "smooth" });
+  console.log("completed courses: ", completedCourses);
+
+  const scrollToSection = (ref) => {
+    if (ref.current) {
+      ref.current.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
-  const scrollRight = (ref) => {
-    ref.current.scrollBy({ left: 300, behavior: "smooth" });
+  const handleEnrolledClick = (id) => {
+    console.log(id);
+    navigate(`/enrolled-courses/${id}`);
   };
 
-  const handleClick = (course) => {
-    navigate(`/courses/${course._id}`);
+  const handleCourseClick = (id) => {
+    navigate(`/courses/${id}`);
   };
 
-  const handleEnrolledClick = (course) => {
-    navigate(`/enrolled-courses/${course._id}`);
+  if (!userid) {
+    return <p className="text-center text-red-500">No userId found</p>;
+  }
+
+  if (loading) {
+    return <p className="text-center text-gray-500">Loading...</p>;
+  }
+
+  if (error) {
+    return <p className="text-center text-red-500">{error}</p>;
+  }
+
+  // working on logout here:
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate("/");
   };
 
-  const Section = ({ title, color, courses, refObj, onClick }) => (
-    <section>
-      <h1
-        className={`text-3xl font-bold mb-4`}
-        style={{ color: color }}
-      >
-        {title}
-      </h1>
+  return (
+    <div className="p-6 bg-gray-100 min-h-screen">
+      <div className="flex justify-between align-center "> 
 
-      {loading && !courses.length && <p>Loading {title.toLowerCase()}...</p>}
-      {!loading && error && (
-        <p className="text-red-500 text-sm">{error}</p>
-      )}
+        <h1 className="text-3xl font-bold mb-6 text-gray-800">Dashboard</h1>
+        <button onClick={handleLogout}
+        className="pointer bg-red-500 text-white p-2 w-32 h-12 rounded-md font-bold text-xl hover:bg-red-700">
+          Logout
+        </button>
+      </div>
 
-      {!loading && courses && courses.length > 0 ? (
-        <div className="relative flex items-center">
-          <button
-            onClick={() => scrollLeft(refObj)}
-            className="absolute left-0 z-10 bg-white shadow-md rounded-full p-2 hover:bg-gray-100"
-          >
-            ◀
-          </button>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div
+          className="bg-blue-500 text-white p-6 rounded-lg shadow-md cursor-pointer hover:bg-blue-600 transition"
+          onClick={() => scrollToSection(enrolledRef)}
+        >
+          <h2 className="text-xl font-semibold">Enrolled Courses</h2>
+          <p className="text-3xl font-bold">{enrolledCourses.length}</p>
+        </div>
 
-          <div
-            ref={refObj}
-            className="flex gap-6 overflow-x-auto scrollbar-hide px-12 py-4"
-            style={{ scrollBehavior: "smooth" }}
-          >
-            {courses.map((course) => (
+        <div
+          className="bg-green-500 text-white p-6 rounded-lg shadow-md cursor-pointer hover:bg-green-600 transition"
+          onClick={() => scrollToSection(allRef)}
+        >
+          <h2 className="text-xl font-semibold">All Courses</h2>
+          <p className="text-3xl font-bold">{allCourses.length}</p>
+        </div>
+
+        <div
+          className="bg-purple-500 text-white p-6 rounded-lg shadow-md cursor-pointer hover:bg-purple-600 transition"
+          onClick={() => scrollToSection(completedRef)}
+        >
+          <h2 className="text-xl font-semibold">Completed Courses</h2>
+          <p className="text-3xl font-bold">{completedCourses.length}</p>
+        </div>
+      </div>
+
+      {/* Enrolled Courses Section */}
+      <section ref={enrolledRef} className="mb-12">
+        <h2 className="text-2xl font-bold mb-4 text-gray-700">
+          Enrolled Courses
+        </h2>
+        {enrolledCourses.length === 0 ? (
+          <p className="text-gray-500">No enrolled courses.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {enrolledCourses.map((item) => (
+              <div
+              // working here:
+                key={item._id}
+                className="bg-white rounded-lg shadow hover:shadow-lg transition cursor-pointer"
+                onClick={() => handleEnrolledClick(item._id)}
+              >
+                <img
+                  src={item.course.image}
+                  alt={item.course.title}
+                  className="w-full h-40 object-cover rounded-t-lg"
+                />
+                <div className="p-4">
+                  <h3 className="text-lg font-semibold">{item.course.title}</h3>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* All Courses Section */}
+      <section ref={allRef} className="mb-12">
+        <h2 className="text-2xl font-bold mb-4 text-gray-700">All Courses</h2>
+        {allCourses.length === 0 ? (
+          <p className="text-gray-500">No courses available.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {allCourses.map((course) => (
               <div
                 key={course._id}
-                onClick={() => onClick(course)}
-                className="w-64 flex-shrink-0 bg-white rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer border border-gray-200"
+                className="bg-white rounded-lg shadow hover:shadow-lg transition cursor-pointer"
+                onClick={() => handleCourseClick(course._id)}
               >
                 <img
                   src={course.image}
@@ -89,61 +160,42 @@ function Dashboard() {
                   className="w-full h-40 object-cover rounded-t-lg"
                 />
                 <div className="p-4">
-                  <h2 className="text-lg font-semibold text-gray-800 truncate">
-                    {course.title}
-                  </h2>
-                  <p className="text-gray-500 text-sm mt-1 line-clamp-2">
-                    {course.description || "No description available."}
-                  </p>
+                  <h3 className="text-lg font-semibold">{course.title}</h3>
                 </div>
               </div>
             ))}
           </div>
+        )}
+      </section>
 
-          <button
-            onClick={() => scrollRight(refObj)}
-            className="absolute right-0 z-10 bg-white shadow-md rounded-full p-2 hover:bg-gray-100"
-          >
-            ▶
-          </button>
-        </div>
-      ) : (
-        !loading && <p className="text-gray-500">No {title.toLowerCase()} available</p>
-      )}
-    </section>
-  );
-
-  return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      <Header />
-
-      <main className="flex-grow px-6 py-8 space-y-12 max-w-7xl mx-auto">
-        <Section
-          title="All Courses"
-          color="#2563eb" // blue-600
-          courses={allCourses}
-          refObj={scrollRefAll}
-          onClick={handleClick}
-        />
-
-        <Section
-          title="Enrolled Courses"
-          color="#16a34a" // green-600
-          courses={enrolledCourses}
-          refObj={scrollRefEnrolled}
-          onClick={handleEnrolledClick}
-        />
-
-        <Section
-          title="Completed Courses"
-          color="#9333ea" // purple-600
-          courses={completedCourses}
-          refObj={scrollRefCompleted}
-          // onClick={handleClick}
-        />
-      </main>
-
-      <Footer />
+      {/* Completed Courses Section */}
+      <section ref={completedRef}>
+        <h2 className="text-2xl font-bold mb-4 text-gray-700">
+          Completed Courses
+        </h2>
+        {completedCourses.length === 0 ? (
+          <p className="text-gray-500">No completed courses.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {completedCourses.map((course) => (
+              <div
+                key={course._id}
+                className="bg-white rounded-lg shadow hover:shadow-lg transition cursor-pointer"
+                onClick={() => handleEnrolledClick(course._id)}
+              >
+                <img
+                  src={course.image}
+                  alt={course.title}
+                  className="w-full h-40 object-cover rounded-t-lg"
+                />
+                <div className="p-4">
+                  <h3 className="text-lg font-semibold">{course.title}</h3>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

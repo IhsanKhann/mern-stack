@@ -1,13 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
 import enrollementReducer from "./sliceEnrollement";
-import userReducer from "./sliceUser";
+import authReducer from "./sliceUser";
 
 
 // store here: add reducers.
 const store = configureStore({
     reducer: {
         enrolledCourses: enrollementReducer,
-        user:userReducer,
+        auth:authReducer,
     },
 });
 

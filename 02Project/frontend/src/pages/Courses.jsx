@@ -1,5 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useState,useEffect } from "react";
+
 import CourseDetails from "../components/CourseDetails";
 import { useSelector } from "react-redux";
 
@@ -7,7 +8,7 @@ function Courses() {
     const {id} = useParams(); // this to get the singleCourse
 
     const [course,setCourse] = useState({});
-    const {user} = useSelector((state) => state.user.User);
+    const user = useSelector((state) => state.auth.user);
     const [userId,setUserId] = useState(user?._id);
 
     useEffect(()=>{
@@ -21,9 +22,8 @@ function Courses() {
                     const res = await fetch(`/api/course/${id}`);
                     const data = await res.json();
                     
-                    console.log("fetched data: ", data);
+                    console.log("inside the courses page: ", data);
                     setCourse(data.course);
-                    
                 }
             }
             catch(error){
